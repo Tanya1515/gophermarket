@@ -191,7 +191,7 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 			GM.logger.Errorln("Order number is invalid")
 			return
 		}
-
+		GM.logger.Infoln("User login: ", login)
 		err = GM.storage.AddNewOrder(login.(string), orderID)
 		if err != nil {
 			if strings.Contains(err.Error(), "error: order with number") {
