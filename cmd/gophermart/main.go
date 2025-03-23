@@ -24,14 +24,14 @@ type Gophermarket struct {
 
 func init() {
 	marketAddressFlag = flag.String("a", "localhost:8081", "gophermarket address")
-	storageUrlFlag = flag.String("d", "localhost:5432", "database url")
+	storageURLFlag = flag.String("d", "localhost:5432", "database url")
 	accrualSystemAddressFlag = flag.String("r", "localhost:8080", "acccrual system address")
 	accrualLimitFlag = flag.Int("l", 100, "request limits for accrual system")
 }
 
 var (
 	marketAddressFlag        *string
-	storageUrlFlag           *string
+	storageURLFlag           *string
 	accrualSystemAddressFlag *string
 	accrualLimitFlag         *int
 )
@@ -51,6 +51,7 @@ func main() {
 
 	defer loggerApp.Sync()
 
+	GM.logger = loggerApp
 	flag.Parse()
 
 	marketAddress, ok := os.LookupEnv("RUN_ADDRESS")
@@ -60,7 +61,7 @@ func main() {
 	// dsn-формат
 	storageAddress, ok := os.LookupEnv("DATABASE_URI")
 	if !ok {
-		storageAddress = *storageUrlFlag
+		storageAddress = *storageURLFlag
 	}
 
 	GM.logger.Infoln("Storage address: ", storageAddress)
@@ -84,7 +85,6 @@ func main() {
 	Storage := &psql.PostgreSQL{Address: storageAddressArgs[0], Port: storageAddressArgs[1], UserName: "collector", Password: "postgres", DBName: "gophermarket"}
 
 	GM.storage = Storage
-	GM.logger = loggerApp
 
 	Accrual.Logger = loggerApp
 	Accrual.Storage = Storage
