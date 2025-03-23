@@ -35,7 +35,7 @@ func (GM *Gophermarket) MiddlewareCheckUser(h http.HandlerFunc) http.HandlerFunc
 			GM.logger.Errorf("User is not anuthorized: ", err.Error())
 			return
 		}
-
+		GM.logger.Infoln("User login: ", claims.UserLogin)
 		err = GM.storage.CheckUserJWT(claims.UserLogin)
 		if err != nil {
 			http.Error(rw, "User is not anuthorized", http.StatusUnauthorized)
