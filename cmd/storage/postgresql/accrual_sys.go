@@ -7,7 +7,7 @@ import (
 )
 
 func (db *PostgreSQL) ProcessAccOrder(order add.Order) (err error) {
-	var userId int
+	var userID int
 	tx, err := db.dbConn.Begin()
 	if err != nil {
 		return
@@ -15,13 +15,13 @@ func (db *PostgreSQL) ProcessAccOrder(order add.Order) (err error) {
 
 	if (order.Status == "PROCESSED") || (order.Accrual > 0) {
 		row := tx.QueryRow("SELECT user_id FROM orders WHERE id=$1", order.Number)
-		err = row.Scan(&userId)
+		err = row.Scan(&userID)
 		if err != nil {
 			tx.Rollback()
 			return
 		}
 
-		_, err = tx.Exec("UPDATE users SET sum=sum+$1 WHERE id=$2", order.Accrual, userId)
+		_, err = tx.Exec("UPDATE users SET sum=sum+$1 WHERE id=$2", order.Accrual, userID)
 		if err != nil {
 			tx.Rollback()
 			return

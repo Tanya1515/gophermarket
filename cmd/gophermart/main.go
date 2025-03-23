@@ -58,18 +58,10 @@ func main() {
 	if !ok {
 		marketAddress = *marketAddressFlag
 	}
-	// dsn-формат
+
 	storageAddress, ok := os.LookupEnv("DATABASE_URI")
 	if !ok {
 		storageAddress = *storageURLFlag
-	}
-
-	GM.logger.Infoln("ST: ", storageAddress)
-
-	storageAddressArgs := strings.Split(storageAddress, "/")
-
-	for _, value := range storageAddressArgs {
-		GM.logger.Infoln("ST: ", value)
 	}
 
 	accrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
@@ -86,7 +78,15 @@ func main() {
 		}
 	}
 
-	Storage := &psql.PostgreSQL{Address: storageAddressArgs[0], Port: storageAddressArgs[1], UserName: "collector", Password: "postgres", DBName: "gophermarket"}
+	storageArgs := strings.Split(strings.Split(storageAddress, "//")[1], ":")
+	storagePass := strings.Split(storageArgs[1], "@")
+	storageAddr := strings.Split(storagePass[1], "/")
+
+	GM.logger.Infoln("Address: ", storageAddr[0])
+	GM.logger.Infoln("UserName: ", storageArgs[0])
+	GM.logger.Infoln("Password: ", storagePass[0])
+	GM.logger.Infoln("DBName: ", storageAddr[1])
+	Storage := &psql.PostgreSQL{Address: storageAddr[0], UserName: storageArgs[0], Password: storagePass[0], DBName: storageAddr[1]}
 
 	GM.storage = Storage
 

@@ -161,6 +161,11 @@ func (db *PostgreSQL) GetAllOrders(orders *[]add.Order, login string) (err error
 		*orders = append(*orders, order)
 	}
 
+	err = rows.Err()
+	if err != nil {
+		return
+	}
+
 	return
 }
 
