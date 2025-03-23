@@ -30,10 +30,10 @@ func (db *PostgreSQL) Init() error {
 	db.dbConn.Exec("DROP TABLE order_spend;")
 	db.dbConn.Exec("DROP TYPE status_enum;")
 
-	// _, err = db.dbConn.Exec(`CREATE EXTENSION pgcrypto;`)
-	// if err != nil {
-	// 	return fmt.Errorf("error while creating extension pgcrypto: %w", err)
-	// }
+	_, err = db.dbConn.Exec(`CREATE EXTENSION pgcrypto;`)
+	if err != nil {
+		return fmt.Errorf("error while creating extension pgcrypto: %w", err)
+	}
 
 	_, err = db.dbConn.Exec(`CREATE TABLE users (id BIGSERIAL PRIMARY KEY,
 												login VARCHAR(1000) NOT NULL UNIQUE,
