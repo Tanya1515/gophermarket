@@ -189,5 +189,9 @@ func (db *PostgreSQL) GetSpendOrders(orders *[]add.OrderSpend, login string) (er
 		*orders = append(*orders, order)
 	}
 
+	err = rows.Err()
+	if err != nil {
+		return
+	}
 	return
 }
