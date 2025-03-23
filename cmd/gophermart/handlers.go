@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -176,21 +176,7 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 
 		login := r.Context().Value("userLogin")
 
-		// _, err = buf.ReadFrom(r.Body)
-		// if err != nil {
-		// 	http.Error(rw, fmt.Sprintf("Error while reading order number for processing it: %s", err.Error()), http.StatusBadRequest)
-		// 	GM.logger.Errorf("Error while reading order number for processing it: ", err.Error())
-		// 	return
-		// }
-
-		// err = json.Unmarshal(buf.Bytes(), &order)
-		// if err != nil {
-		// 	http.Error(rw, fmt.Sprintf("Error while unmarshalling request body for processing new order: %s", err.Error()), http.StatusInternalServerError)
-		// 	GM.logger.Errorf("Error while unmarshalling request body for processing new order: ", err.Error())
-		// 	return
-		// }
-
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(rw, "Unable to read request body", http.StatusInternalServerError)
 			return
