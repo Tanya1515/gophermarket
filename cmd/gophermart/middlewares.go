@@ -18,7 +18,7 @@ func (GM *Gophermarket) MiddlewareCheckUser(h http.HandlerFunc) http.HandlerFunc
 	return func(rw http.ResponseWriter, r *http.Request) {
 		token, err := r.Cookie("token")
 		if err != nil {
-			http.Error(rw, "", http.StatusBadRequest)
+			http.Error(rw, "", http.StatusUnauthorized)
 			GM.logger.Errorf("Error while processing cookie")
 			return
 		}
