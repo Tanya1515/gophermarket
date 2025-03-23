@@ -160,7 +160,7 @@ func (GM *Gophermarket) GetOrdersInfobyUser() http.HandlerFunc {
 			GM.logger.Errorf("Error while getting order info for user: ", err.Error())
 			return
 		}
-
+		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusOK)
 
 		rw.Write(ordersByte)
@@ -230,7 +230,7 @@ func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 			GM.logger.Errorf("Error while unmarshalling request body for processing new order: ", err.Error())
 			return
 		}
-
+		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusOK)
 
 		rw.Write(balanceByte)
@@ -261,7 +261,7 @@ func (GM *Gophermarket) GetUserWastes() http.HandlerFunc {
 			GM.logger.Errorf("Error while getting order with points to spend info for user: ", err.Error())
 			return
 		}
-
+		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusOK)
 
 		rw.Write(ordersByte)
