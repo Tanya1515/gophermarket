@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	_ "strings"
 
 	"github.com/go-chi/chi/v5"
@@ -59,10 +60,10 @@ func main() {
 		marketAddress = *marketAddressFlag
 	}
 
-	// storageAddress, ok := os.LookupEnv("DATABASE_URI")
-	// if !ok {
-	// 	storageAddress = *storageURLFlag
-	// }
+	storageAddress, ok := os.LookupEnv("DATABASE_URI")
+	if !ok {
+		storageAddress = *storageURLFlag
+	}
 
 	accrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
 	if !ok {
@@ -78,14 +79,14 @@ func main() {
 		}
 	}
 
-	// storageArgs := strings.Split(strings.Split(storageAddress, "//")[1], ":")
-	// storagePass := strings.Split(storageArgs[1], "@")
-	// storageAddr := strings.Split(storagePass[1], "/")
-	// storageDB := strings.Split(storageAddr[1], "?")
+	storageArgs := strings.Split(strings.Split(storageAddress, "//")[1], ":")
+	storagePass := strings.Split(storageArgs[1], "@")
+	storageAddr := strings.Split(storagePass[1], "/")
+	storageDB := strings.Split(storageAddr[1], "?")
 
-	// Storage := &psql.PostgreSQL{Address: storageAddr[0], UserName: storageArgs[0], Password: storagePass[0], DBName: storageDB[0]}
+	Storage := &psql.PostgreSQL{Address: storageAddr[0], UserName: storageArgs[0], Password: storagePass[0], DBName: storageDB[0]}
 
-	Storage := &psql.PostgreSQL{Address: "localhost", UserName: "collector", Password: "postgres", DBName: "gophermarket"}
+	// Storage := &psql.PostgreSQL{Address: "localhost", UserName: "collector", Password: "postgres", DBName: "gophermarket"}
 	GM.storage = Storage
 
 	Accrual.Logger = loggerApp
