@@ -79,14 +79,23 @@ func CheckOrderNumber(orderNumber string) bool {
 	if err != nil {
 		panic(err)
 	}
+
 	for res64 > 0 {
 		num = res64 % 10
 		res64 = res64 / 10
 		arrayDigits = append(arrayDigits, num)
 	}
 
+	ok := (len(arrayDigits)) % 2
 	for key, value := range arrayDigits {
-		if ((key + 1) % 2) == ((len(arrayDigits)) % 2) {
+		if (ok == 1) && ((key % 2) == ok) && (key != 0) {
+			value = value * 2
+			if value > 9 {
+				value = value - 9
+			}
+		}
+
+		if (ok == 0) && (((key + 1) % 2) == ok) && (key != 0) {
 			value = value * 2
 			if value > 9 {
 				value = value - 9

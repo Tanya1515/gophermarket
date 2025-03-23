@@ -184,6 +184,8 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 
 		orderID := string(body)
 
+		GM.logger.Infoln("OrderID: ", orderID)
+
 		if !add.CheckOrderNumber(orderID) {
 			http.Error(rw, "Order number is invalid", http.StatusUnprocessableEntity)
 			GM.logger.Errorln("Order number is invalid")
