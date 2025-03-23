@@ -63,6 +63,8 @@ func main() {
 		storageAddress = *storageUrlFlag
 	}
 
+	GM.logger.Infoln("Storage address: ", storageAddress)
+
 	storageAddressArgs := strings.Split(storageAddress, ":")
 
 	accrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
