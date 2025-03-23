@@ -1,4 +1,4 @@
-package intAccrual
+package intaccrual
 
 import (
 	"encoding/json"
@@ -48,19 +48,19 @@ func (ac *AccrualSystem) GetOrderFromAccrual(inputChan chan string, resultChan c
 
 	var order add.OrderAcc
 
-	for orderId := range inputChan {
-		orderId := orderId
+	for orderID := range inputChan {
+		orderID := orderID
 
 		go func() {
 			client := resty.New()
 			ac.SemaphoreAccrual.Lock()
 			defer ac.SemaphoreAccrual.Acquire()
 			for {
-				resp, err := client.R().Get("http://" + ac.AccrualAddress + "/api/orders/" + orderId)
+				resp, err := client.R().Get("http://" + ac.AccrualAddress + "/api/orders/" + orderID)
 
 				if err != nil {
 					time.Sleep(5 * time.Microsecond)
-					ac.Logger.Errorf("Error while getting order %s from accrual system: %s", orderId, err)
+					ac.Logger.Errorf("Error while getting order %s from accrual system: %s", orderID, err)
 					continue
 				}
 

@@ -53,7 +53,7 @@ func (db *PostgreSQL) AddNewOrder(login string, orderNumber string) (err error) 
 		return fmt.Errorf("error: order with number %s already exists and belongs to another user", orderNumber)
 	}
 
-	_, err = db.dbConn.Exec("INSERT INTO orders (id, status, accrual, uploaded_at, user_id) VALUES($1, $2, $3, $4, (SELECT id FROM users WHERE users.login=$5))", orderNumber, "NEW", 0, time.Now().Format(time.RFC3339), login)
+	_, err = db.dbConn.Exec("INSERT INTO orders (id, status, accrual, UploadedAt, user_id) VALUES($1, $2, $3, $4, (SELECT id FROM users WHERE users.login=$5))", orderNumber, "NEW", 0, time.Now().Format(time.RFC3339), login)
 
 	return
 }
@@ -79,7 +79,7 @@ func (db *PostgreSQL) ProcessPayPoints(order add.OrderSpend, login string) (err 
 		return
 	}
 
-	_, err = tx.Exec("INSERT INTO order_spend (id, processed_at, sum, user_id) VALUES($1, $2, $3, (SELECT id FROM users WHERE login=$4));", order.Number, time.Now().Format(time.RFC3339), order.Sum, login)
+	_, err = tx.Exec("INSERT INTO order_spend (id, ProcessedAt, sum, user_id) VALUES($1, $2, $3, (SELECT id FROM users WHERE login=$4));", order.Number, time.Now().Format(time.RFC3339), order.Sum, login)
 	if err != nil {
 		tx.Rollback()
 		return
@@ -143,7 +143,7 @@ func (db *PostgreSQL) GetUserBalance(login string) (balance add.Balance, err err
 
 func (db *PostgreSQL) GetAllOrders(orders *[]add.Order, login string) (err error) {
 	var order add.Order
-	rows, err := db.dbConn.Query("SELECT id, status, uploaded_at, accrual FROM orders WHERE user_id=(SELECT id FROM users WHERE login=$1) ORDER BY uploaded_at DESC", login)
+	rows, err := db.dbConn.Query("SELECT id, status, UploadedAt, accrual FROM orders WHERE user_id=(SELECT id FROM users WHERE login=$1) ORDER BY UploadedAt DESC", login)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("no orders for user have been found %w", err)
@@ -153,7 +153,7 @@ func (db *PostgreSQL) GetAllOrders(orders *[]add.Order, login string) (err error
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&order.Number, &order.Status, &order.Uploaded_at, &order.Accrual)
+		err = rows.Scan(&order.Number, &order.Status, &order.UploadedAt, &order.Accrual)
 		if err != nil {
 			return
 		}
@@ -171,7 +171,7 @@ func (db *PostgreSQL) GetAllOrders(orders *[]add.Order, login string) (err error
 
 func (db *PostgreSQL) GetSpendOrders(orders *[]add.OrderSpend, login string) (err error) {
 	var order add.OrderSpend
-	rows, err := db.dbConn.Query("SELECT id, processed_at, sum FROM order_spend WHERE user_id=(SELECT id FROM users WHERE login=$1) ORDER BY processed_at DESC", login)
+	rows, err := db.dbConn.Query("SELECT id, ProcessedAt, sum FROM order_spend WHERE user_id=(SELECT id FROM users WHERE login=$1) ORDER BY ProcessedAt DESC", login)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("no orders for user have been found %w", err)
@@ -181,7 +181,7 @@ func (db *PostgreSQL) GetSpendOrders(orders *[]add.OrderSpend, login string) (er
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&order.Number, &order.Processed_at, &order.Sum)
+		err = rows.Scan(&order.Number, &order.ProcessedAt, &order.Sum)
 		if err != nil {
 			return
 		}

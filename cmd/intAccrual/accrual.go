@@ -1,4 +1,4 @@
-package intAccrual
+package intaccrual
 
 import (
 	"time"
@@ -23,14 +23,14 @@ func (ac *AccrualSystem) AccrualMain() {
 	ac.SemaphoreAccrual = semaphoreAccrual
 
 	processOrderChan := make(chan add.OrderAcc, ac.Limit)
-	orderIdChan := make(chan string, ac.Limit)
+	orderIDChan := make(chan string, ac.Limit)
 	resultOrderChan := make(chan add.OrderAcc, ac.Limit)
 
 	go ac.Storage.StartProcessingUserOrder(ac.Logger, processOrderChan)
 
-	go ac.SendOrder(processOrderChan, orderIdChan)
+	go ac.SendOrder(processOrderChan, orderIDChan)
 
-	go ac.GetOrderFromAccrual(orderIdChan, resultOrderChan)
+	go ac.GetOrderFromAccrual(orderIDChan, resultOrderChan)
 
 	for order := range resultOrderChan {
 		order := order

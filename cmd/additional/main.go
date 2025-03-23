@@ -27,16 +27,16 @@ const (
 )
 
 type OrderSpend struct {
-	Number       string    `json:"order"`
-	Sum          float64   `json:"sum"`
-	Processed_at time.Time `json:"processed_at"`
+	Number      string    `json:"order"`
+	Sum         float64   `json:"sum"`
+	ProcessedAt time.Time `json:"ProcessedAt"`
 }
 
 type Order struct {
-	Number      string    `json:"number"`
-	Status      Status    `json:"status"`
-	Accrual     float64   `json:"accrual"`
-	Uploaded_at time.Time `json:"uploaded_at"`
+	Number     string    `json:"number"`
+	Status     Status    `json:"status"`
+	Accrual    float64   `json:"accrual"`
+	UploadedAt time.Time `json:"UploadedAt"`
 }
 
 type OrderAcc struct {
@@ -45,7 +45,7 @@ type OrderAcc struct {
 	Status  Status  `json:"status"`
 }
 
-const TOKEN_EXP = time.Hour
+const TokenExp = time.Hour
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -57,7 +57,7 @@ func GenerateToken(user User, secretKey string) (JWTtoken string, err error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
 		},
 		UserLogin:    user.Login,
 		UserPassword: user.Password,

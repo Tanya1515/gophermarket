@@ -171,7 +171,6 @@ func (GM *Gophermarket) GetOrdersInfobyUser() http.HandlerFunc {
 
 func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 	addOrdersInfobyUser := func(rw http.ResponseWriter, r *http.Request) {
-		// var buf bytes.Buffer
 		var err error
 
 		login := r.Context().Value("userLogin")

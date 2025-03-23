@@ -1,4 +1,4 @@
-package intAccrual
+package intaccrual
 
 type Semaphore struct {
 	semaphoreChan chan struct{}

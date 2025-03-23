@@ -83,10 +83,6 @@ func main() {
 	storageAddr := strings.Split(storagePass[1], "/")
 	storageDB := strings.Split(storageAddr[1], "?")
 
-	GM.logger.Infoln("Address: ", storageAddr[0])
-	GM.logger.Infoln("UserName: ", storageArgs[0])
-	GM.logger.Infoln("Password: ", storagePass[0])
-	GM.logger.Infoln("DBName: ", storageDB[0])
 	Storage := &psql.PostgreSQL{Address: storageAddr[0], UserName: storageArgs[0], Password: storagePass[0], DBName: storageDB[0]}
 
 	GM.storage = Storage

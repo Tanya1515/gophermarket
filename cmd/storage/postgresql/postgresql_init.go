@@ -52,7 +52,7 @@ func (db *PostgreSQL) Init() error {
 
 	_, err = db.dbConn.Exec(`CREATE TABLE orders (id BIGINT PRIMARY KEY,
 														status Status_Enum,
-														uploaded_at TIMESTAMP,
+														UploadedAt TIMESTAMP,
 														accrual FLOAT8,
 														user_id BIGINT REFERENCES Users (id) ON DELETE CASCADE);`)
 
@@ -61,7 +61,7 @@ func (db *PostgreSQL) Init() error {
 	}
 
 	_, err = db.dbConn.Exec(`CREATE TABLE order_spend (id BIGINT PRIMARY KEY,
-													processed_at TIMESTAMP,
+													ProcessedAt TIMESTAMP,
 													sum FLOAT8, 
 													user_id BIGINT REFERENCES Users (id) ON DELETE CASCADE);`)
 	if err != nil {
