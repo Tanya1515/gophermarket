@@ -26,7 +26,7 @@ func (ac *AccrualSystem) SendOrder(inputChan chan add.OrderAcc, resultChan chan 
 			for {
 				_, err = client.R().SetHeader("Content-Type", "application/json").
 					SetBody(ordersByte).
-					Post("http://" + ac.AccrualAddress + "/api/orders")
+					Post(ac.AccrualAddress + "/api/orders")
 
 				if err == nil {
 					ac.Logger.Infof("Send order: %s", order.Order)
@@ -56,7 +56,7 @@ func (ac *AccrualSystem) GetOrderFromAccrual(inputChan chan string, resultChan c
 			ac.SemaphoreAccrual.Lock()
 			defer ac.SemaphoreAccrual.Acquire()
 			for {
-				resp, err := client.R().Get("http://" + ac.AccrualAddress + "/api/orders/" + orderID)
+				resp, err := client.R().Get(ac.AccrualAddress + "/api/orders/" + orderID)
 
 				if err != nil {
 					time.Sleep(5 * time.Microsecond)

@@ -25,7 +25,7 @@ type Gophermarket struct {
 func init() {
 	marketAddressFlag = flag.String("a", "localhost:8081", "gophermarket address")
 	storageURLFlag = flag.String("d", "localhost:5432", "database url")
-	accrualSystemAddressFlag = flag.String("r", "localhost:8080", "acccrual system address")
+	accrualSystemAddressFlag = flag.String("r", "http://localhost:8080", "acccrual system address")
 	accrualLimitFlag = flag.Int("l", 100, "request limits for accrual system")
 }
 
