@@ -13,9 +13,15 @@ func (db *PostgreSQL) ProcessAccOrder(order add.Order) (err error) {
 		return
 	}
 
-	if (order.Status == "PROCESSED") || (order.Accrual > 0) {
+	if (order.Status == "PROCESSED") && (order.Accrual > 0) {
 		row := tx.QueryRow("SELECT user_id FROM orders WHERE id=$1", order.Number)
 		err = row.Scan(&userID)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		_, err = tx.Exec("UPDATE orders SET accrual=$1 WHERE id=$2", order.Accrual, order.Number)
 		if err != nil {
 			tx.Rollback()
 			return

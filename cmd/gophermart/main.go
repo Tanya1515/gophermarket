@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 
-	_ "github.com/Tanya1515/gophermarket/cmd/additional"
 	acc "github.com/Tanya1515/gophermarket/cmd/intAccrual"
 	storage "github.com/Tanya1515/gophermarket/cmd/storage"
 	psql "github.com/Tanya1515/gophermarket/cmd/storage/postgresql"
