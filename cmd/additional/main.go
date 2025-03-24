@@ -53,6 +53,10 @@ type Claims struct {
 	UserPassword string
 }
 
+type contextKey string
+
+const LogginKey contextKey = "userLogin"
+
 func GenerateToken(user User, secretKey string) (JWTtoken string, err error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{

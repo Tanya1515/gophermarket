@@ -10,10 +10,6 @@ import (
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 )
 
-// type contextKey string
-
-// const logginKey contextKey = "userLogin"
-
 func (GM *Gophermarket) MiddlewareCheckUser(h http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		token, err := r.Cookie("token")
@@ -42,7 +38,7 @@ func (GM *Gophermarket) MiddlewareCheckUser(h http.HandlerFunc) http.HandlerFunc
 			return
 		}
 
-		h.ServeHTTP(rw, r.WithContext(context.WithValue(r.Context(), "userLogin", claims.UserLogin)))
+		h.ServeHTTP(rw, r.WithContext(context.WithValue(r.Context(), add.LogginKey, claims.UserLogin)))
 
 	}
 }

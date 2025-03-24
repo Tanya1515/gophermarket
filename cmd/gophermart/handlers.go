@@ -139,7 +139,7 @@ func (GM *Gophermarket) AuthentificateUser() http.HandlerFunc {
 
 func (GM *Gophermarket) GetOrdersInfobyUser() http.HandlerFunc {
 	getOrdersInfobyUser := func(rw http.ResponseWriter, r *http.Request) {
-		login := r.Context().Value("userLogin")
+		login := r.Context().Value(add.LogginKey)
 
 		orders := make([]add.Order, 0, 10)
 
@@ -173,7 +173,7 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 	addOrdersInfobyUser := func(rw http.ResponseWriter, r *http.Request) {
 		var err error
 
-		login := r.Context().Value("userLogin")
+		login := r.Context().Value(add.LogginKey)
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -215,7 +215,7 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 	getUserBalance := func(rw http.ResponseWriter, r *http.Request) {
 
-		login := r.Context().Value("userLogin")
+		login := r.Context().Value(add.LogginKey)
 
 		balance, err := GM.storage.GetUserBalance(login.(string))
 		if err != nil {
@@ -241,7 +241,7 @@ func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 
 func (GM *Gophermarket) GetUserWastes() http.HandlerFunc {
 	getUserWastes := func(rw http.ResponseWriter, r *http.Request) {
-		login := r.Context().Value("userLogin")
+		login := r.Context().Value(add.LogginKey)
 		orders := make([]add.OrderSpend, 0, 10)
 
 		err := GM.storage.GetSpendOrders(&orders, login.(string))
@@ -275,7 +275,7 @@ func (GM *Gophermarket) PayByPoints() http.HandlerFunc {
 		var buf bytes.Buffer
 		var err error
 		var order add.OrderSpend
-		login := r.Context().Value("userLogin")
+		login := r.Context().Value(add.LogginKey)
 
 		_, err = buf.ReadFrom(r.Body)
 		if err != nil {
