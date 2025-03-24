@@ -93,6 +93,7 @@ func main() {
 	Accrual.AccrualAddress = accrualSystemAddress
 	Accrual.Limit = accrualLimits
 
+	GM.logger.Infoln("Accrual address: ", Accrual.AccrualAddress)
 	err = GM.storage.Init()
 	if err != nil {
 		panic(err)
