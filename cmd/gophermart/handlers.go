@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 )
@@ -36,15 +38,17 @@ func (GM *Gophermarket) RegisterUser() http.HandlerFunc {
 			GM.logger.Errorf("Error while getting user credentials")
 			return
 		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
 
-		err = GM.storage.CheckUserLogin(user.Login)
+		err = GM.storage.CheckUserLogin(ctx, user.Login)
 		if err != nil {
 			http.Error(rw, fmt.Sprintf("Error while checking user login: %s", err), http.StatusConflict)
 			GM.logger.Errorf("Error while checking user login: ", err)
 			return
 		}
 
-		err = GM.storage.RegisterNewUser(user)
+		err = GM.storage.RegisterNewUser(ctx, user)
 		if err != nil {
 			http.Error(rw, fmt.Sprintf("Error while regestering new user: %s", err.Error()), http.StatusInternalServerError)
 			GM.logger.Errorf("Error while regestering new user: ", err.Error())
@@ -100,8 +104,9 @@ func (GM *Gophermarket) AuthentificateUser() http.HandlerFunc {
 			GM.logger.Errorf("Error while getting user credentials")
 			return
 		}
-
-		ok, err := GM.storage.CheckUser(user.Login, user.Password)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		ok, err := GM.storage.CheckUser(ctx, user.Login, user.Password)
 		if (err != nil) && ok {
 			http.Error(rw, fmt.Sprintf("Error while processing user with login %s: %s", user.Login, err.Error()), http.StatusInternalServerError)
 			GM.logger.Errorf("Error while processing user with login ", user.Login, ": ", err.Error())
@@ -139,14 +144,15 @@ func (GM *Gophermarket) AuthentificateUser() http.HandlerFunc {
 
 func (GM *Gophermarket) GetOrdersInfobyUser() http.HandlerFunc {
 	getOrdersInfobyUser := func(rw http.ResponseWriter, r *http.Request) {
-		login := r.Context().Value(add.LogginKey)
 
 		orders := make([]add.Order, 0, 10)
 
-		err := GM.storage.GetAllOrders(&orders, login.(string))
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		err := GM.storage.GetAllOrders(ctx, &orders)
 		if err != nil {
-			http.Error(rw, fmt.Sprintf("Error while getting order info for user %s: %s", login, err.Error()), http.StatusInternalServerError)
-			GM.logger.Errorf("Error while getting order info for user ", login, ": ", err.Error())
+			http.Error(rw, fmt.Sprintf("Error while getting order info for user %s: %s", ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
+			GM.logger.Errorf("Error while getting order info for user ", ctx.Value(add.LogginKey), ": ", err.Error())
 			return
 		}
 
@@ -173,8 +179,6 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 	addOrdersInfobyUser := func(rw http.ResponseWriter, r *http.Request) {
 		var err error
 
-		login := r.Context().Value(add.LogginKey)
-
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(rw, "Unable to read request body", http.StatusInternalServerError)
@@ -191,7 +195,9 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 			GM.logger.Errorln("Order number is invalid")
 			return
 		}
-		err = GM.storage.AddNewOrder(login.(string), orderID)
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		err = GM.storage.AddNewOrder(ctx, orderID)
 		if err != nil {
 			if strings.Contains(err.Error(), "error: order with number") {
 				http.Error(rw, err.Error(), http.StatusConflict)
@@ -215,11 +221,11 @@ func (GM *Gophermarket) AddOrdersInfobyUser() http.HandlerFunc {
 func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 	getUserBalance := func(rw http.ResponseWriter, r *http.Request) {
 
-		login := r.Context().Value(add.LogginKey)
-
-		balance, err := GM.storage.GetUserBalance(login.(string))
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		balance, err := GM.storage.GetUserBalance(ctx)
 		if err != nil {
-			http.Error(rw, fmt.Sprintf("Error while getting user %s balance: %s", login, err.Error()), http.StatusInternalServerError)
+			http.Error(rw, fmt.Sprintf("Error while getting user %s balance: %s", ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
 			GM.logger.Errorf("Error while unmarshalling request body for processing new order: ", err.Error())
 			return
 		}
@@ -241,13 +247,14 @@ func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 
 func (GM *Gophermarket) GetUserWastes() http.HandlerFunc {
 	getUserWastes := func(rw http.ResponseWriter, r *http.Request) {
-		login := r.Context().Value(add.LogginKey)
 		orders := make([]add.OrderSpend, 0, 10)
 
-		err := GM.storage.GetSpendOrders(&orders, login.(string))
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		err := GM.storage.GetSpendOrders(ctx, &orders)
 		if err != nil {
-			http.Error(rw, fmt.Sprintf("Error while getting order with points to spend info for user %s: %s", login, err.Error()), http.StatusInternalServerError)
-			GM.logger.Errorf("Error while getting order with points to spend info for user ", login, ": ", err.Error())
+			http.Error(rw, fmt.Sprintf("Error while getting order with points to spend info for user %s: %s",  ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
+			GM.logger.Errorf("Error while getting order with points to spend info for user ",  ctx.Value(add.LogginKey), ": ", err.Error())
 			return
 		}
 
@@ -275,7 +282,6 @@ func (GM *Gophermarket) PayByPoints() http.HandlerFunc {
 		var buf bytes.Buffer
 		var err error
 		var order add.OrderSpend
-		login := r.Context().Value(add.LogginKey)
 
 		_, err = buf.ReadFrom(r.Body)
 		if err != nil {
@@ -296,8 +302,9 @@ func (GM *Gophermarket) PayByPoints() http.HandlerFunc {
 			GM.logger.Errorln("Order number is invalid")
 			return
 		}
-
-		err = GM.storage.ProcessPayPoints(order, login.(string))
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		err = GM.storage.ProcessPayPoints(ctx, order)
 		if err != nil {
 
 			if strings.Contains(err.Error(), "violates check constraint \"valid_sum\"") {

@@ -1,6 +1,7 @@
 package intaccrual
 
 import (
+	"context"
 	"time"
 
 	"go.uber.org/zap"
@@ -41,7 +42,9 @@ func (ac *AccrualSystem) AccrualMain() {
 				orderResult.Number = order.Order
 				orderResult.Status = order.Status
 				orderResult.Accrual = order.Accrual
-				err := ac.Storage.ProcessAccOrder(orderResult)
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				err := ac.Storage.ProcessAccOrder(ctx, orderResult)
 				if err == nil {
 					ac.Logger.Infof("Save recent information about order: %s", order.Order)
 					break

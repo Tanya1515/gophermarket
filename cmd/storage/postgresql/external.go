@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 )
 
-func (db *PostgreSQL) RegisterNewUser(user add.User) error {
+func (db *PostgreSQL) RegisterNewUser(ctx context.Context, user add.User) error {
 
 	_, err := db.dbConn.Exec("INSERT INTO users (login, password, sum, with_drawn) VALUES($1,crypt($2, gen_salt('xdes')),$3,$4)", user.Login, user.Password, 0, 0)
 
@@ -19,11 +20,11 @@ func (db *PostgreSQL) RegisterNewUser(user add.User) error {
 	return nil
 }
 
-func (db *PostgreSQL) AddNewOrder(login string, orderNumber string) (err error) {
+func (db *PostgreSQL) AddNewOrder(ctx context.Context, orderNumber string) (err error) {
 
 	var id string
 
-	rows, err := db.dbConn.Query("SELECT orders.id FROM orders JOIN users ON user_id=users.id WHERE users.login=$1", login)
+	rows, err := db.dbConn.Query("SELECT orders.id FROM orders WHERE user_id=$1", ctx.Value(add.LogginKey))
 	if err != nil {
 		return
 	}
@@ -53,69 +54,72 @@ func (db *PostgreSQL) AddNewOrder(login string, orderNumber string) (err error) 
 		return fmt.Errorf("error: order with number %s already exists and belongs to another user", orderNumber)
 	}
 
-	_, err = db.dbConn.Exec("INSERT INTO orders (id, status, accrual, UploadedAt, user_id) VALUES($1, $2, $3, $4, (SELECT id FROM users WHERE users.login=$5))", orderNumber, "NEW", 0, time.Now().Format(time.RFC3339), login)
+	_, err = db.dbConn.Exec("INSERT INTO orders (id, status, accrual, UploadedAt, user_id) VALUES($1, $2, $3, $4, $5)", orderNumber, "NEW", 0, time.Now().Format(time.RFC3339), ctx.Value(add.LogginKey))
 
 	return
 }
 
-func (db *PostgreSQL) ProcessPayPoints(order add.OrderSpend, login string) (err error) {
+func (db *PostgreSQL) ProcessPayPoints(ctx context.Context, order add.OrderSpend) (err error) {
 
 	tx, err := db.dbConn.Begin()
 
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("error while starting transaction: %w", err)
 	}
 
-	_, err = tx.Exec("UPDATE users SET sum=sum-$1 WHERE login=$2;", order.Sum, login)
+	_, err = tx.Exec("UPDATE users SET sum=sum-$1 WHERE user_id=$2;", order.Sum, ctx.Value(add.LogginKey))
 	if err != nil {
 		tx.Rollback()
 		return
 	}
 
-	_, err = tx.Exec("UPDATE users SET with_drawn=with_drawn+$1 WHERE login=$2;", order.Sum, login)
+	_, err = tx.Exec("UPDATE users SET with_drawn=with_drawn+$1 WHERE user_id=$2;", order.Sum, ctx.Value(add.LogginKey))
 	if err != nil {
 		tx.Rollback()
 		return
 	}
 
-	_, err = tx.Exec("INSERT INTO order_spend (id, ProcessedAt, sum, user_id) VALUES($1, $2, $3, (SELECT id FROM users WHERE login=$4));", order.Number, time.Now().Format(time.RFC3339), order.Sum, login)
+	_, err = tx.Exec("INSERT INTO order_spend (id, ProcessedAt, sum, user_id) VALUES($1, $2, $3, $4);", order.Number, time.Now().Format(time.RFC3339), order.Sum, ctx.Value(add.LogginKey))
 	if err != nil {
 		tx.Rollback()
 		return
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return
+	}
 
 	return
 }
 
-func (db *PostgreSQL) CheckUserLogin(login string) error {
+func (db *PostgreSQL) CheckUserLogin(ctx context.Context, login string) error {
 	var value string
 
 	row := db.dbConn.QueryRow("SELECT login FROM users WHERE login = $1", login)
 
 	err := row.Scan(&value)
-	if !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("user with login %s already exists", login)
-	} else if (err != nil) && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
 		return err
 	}
 
-	return nil
+	return fmt.Errorf("user with login %s already exists", login)
 }
 
-func (db *PostgreSQL) CheckUserJWT(login string) (err error) {
-	var value string
+func (db *PostgreSQL) CheckUserJWT(ctx context.Context, login string) (id string, err error) {
 
-	row := db.dbConn.QueryRow("SELECT login FROM users WHERE login = $1", login)
+	row := db.dbConn.QueryRow("SELECT id FROM users WHERE login = $1", login)
 
-	err = row.Scan(&value)
+	err = row.Scan(&id)
 
 	return
 }
 
-func (db *PostgreSQL) CheckUser(login, password string) (ok bool, err error) {
+func (db *PostgreSQL) CheckUser(ctx context.Context, login, password string) (ok bool, err error) {
 	ok = true
 	row := db.dbConn.QueryRow(`SELECT (password = crypt($1, password)) 
 								AS password_match
@@ -130,9 +134,9 @@ func (db *PostgreSQL) CheckUser(login, password string) (ok bool, err error) {
 	return
 }
 
-func (db *PostgreSQL) GetUserBalance(login string) (balance add.Balance, err error) {
+func (db *PostgreSQL) GetUserBalance(ctx context.Context) (balance add.Balance, err error) {
 
-	row := db.dbConn.QueryRow(`SELECT sum, with_drawn FROM Users WHERE login = $1`, login)
+	row := db.dbConn.QueryRow(`SELECT sum, with_drawn FROM Users WHERE user_id = $1`, ctx.Value(add.LogginKey))
 	err = row.Scan(&balance.Current, &balance.Withdrawn)
 	if err != nil {
 		return
@@ -141,9 +145,9 @@ func (db *PostgreSQL) GetUserBalance(login string) (balance add.Balance, err err
 	return
 }
 
-func (db *PostgreSQL) GetAllOrders(orders *[]add.Order, login string) (err error) {
+func (db *PostgreSQL) GetAllOrders(ctx context.Context, orders *[]add.Order) (err error) {
 	var order add.Order
-	rows, err := db.dbConn.Query("SELECT id, status, UploadedAt, accrual FROM orders WHERE user_id=(SELECT id FROM users WHERE login=$1) ORDER BY UploadedAt DESC", login)
+	rows, err := db.dbConn.Query("SELECT id, status, UploadedAt, accrual FROM orders WHERE user_id=$1 ORDER BY UploadedAt DESC", ctx.Value(add.LogginKey))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("no orders for user have been found %w", err)
@@ -169,9 +173,9 @@ func (db *PostgreSQL) GetAllOrders(orders *[]add.Order, login string) (err error
 	return
 }
 
-func (db *PostgreSQL) GetSpendOrders(orders *[]add.OrderSpend, login string) (err error) {
+func (db *PostgreSQL) GetSpendOrders(ctx context.Context, orders *[]add.OrderSpend) (err error) {
 	var order add.OrderSpend
-	rows, err := db.dbConn.Query("SELECT id, ProcessedAt, sum FROM order_spend WHERE user_id=(SELECT id FROM users WHERE login=$1) ORDER BY ProcessedAt DESC", login)
+	rows, err := db.dbConn.Query("SELECT id, ProcessedAt, sum FROM order_spend WHERE user_id=$1 ORDER BY ProcessedAt DESC", ctx.Value(add.LogginKey))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("no orders for user have been found %w", err)

@@ -25,17 +25,12 @@ func (db *PostgreSQL) Init() error {
 		return err
 	}
 
-	db.dbConn.Exec("DROP TABLE orders;")
-	db.dbConn.Exec("DROP TABLE users;")
-	db.dbConn.Exec("DROP TABLE order_spend;")
-	db.dbConn.Exec("DROP TYPE status_enum;")
-
-	_, err = db.dbConn.Exec(`CREATE EXTENSION pgcrypto;`)
+	_, err = db.dbConn.Exec(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
 	if err != nil {
 		return fmt.Errorf("error while creating extension pgcrypto: %w", err)
 	}
 
-	_, err = db.dbConn.Exec(`CREATE TABLE users (id BIGSERIAL PRIMARY KEY,
+	_, err = db.dbConn.Exec(`CREATE TABLE IF NOT EXISTS users (id BIGSERIAL PRIMARY KEY,
 												login VARCHAR(1000) NOT NULL UNIQUE,
 												password VARCHAR(1000) NOT NULL,
 	                                            sum FLOAT8,
@@ -45,12 +40,10 @@ func (db *PostgreSQL) Init() error {
 		return err
 	}
 
-	_, err = db.dbConn.Exec(`CREATE TYPE status_enum AS ENUM ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED');`)
-	if err != nil {
-		return err
-	}
+	db.dbConn.Exec(`CREATE TYPE status_enum AS ENUM ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED');`)
 
-	_, err = db.dbConn.Exec(`CREATE TABLE orders (id BIGINT PRIMARY KEY,
+
+	_, err = db.dbConn.Exec(`CREATE TABLE IF NOT EXISTS orders (id BIGINT PRIMARY KEY,
 														status Status_Enum,
 														UploadedAt TIMESTAMP,
 														accrual FLOAT8,
@@ -60,7 +53,7 @@ func (db *PostgreSQL) Init() error {
 		return err
 	}
 
-	_, err = db.dbConn.Exec(`CREATE TABLE order_spend (id BIGINT PRIMARY KEY,
+	_, err = db.dbConn.Exec(`CREATE TABLE IF NOT EXISTS order_spend (id BIGINT PRIMARY KEY,
 													ProcessedAt TIMESTAMP,
 													sum FLOAT8, 
 													user_id BIGINT REFERENCES Users (id) ON DELETE CASCADE);`)

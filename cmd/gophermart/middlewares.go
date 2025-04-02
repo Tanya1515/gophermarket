@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 
@@ -31,14 +32,16 @@ func (GM *Gophermarket) MiddlewareCheckUser(h http.HandlerFunc) http.HandlerFunc
 			GM.logger.Errorf("User is not anuthorized: ", err.Error())
 			return
 		}
-		err = GM.storage.CheckUserJWT(claims.UserLogin)
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		id, err := GM.storage.CheckUserJWT(ctx, claims.UserLogin)
 		if err != nil {
 			http.Error(rw, "User is not anuthorized", http.StatusUnauthorized)
 			GM.logger.Errorf("User is not anuthorized")
 			return
 		}
 
-		h.ServeHTTP(rw, r.WithContext(context.WithValue(r.Context(), add.LogginKey, claims.UserLogin)))
+		h.ServeHTTP(rw, r.WithContext(context.WithValue(r.Context(), add.LogginKey, id)))
 
 	}
 }

@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 	"go.uber.org/zap"
 )
@@ -8,25 +10,25 @@ import (
 type StorageInterface interface {
 	Init() error
 
-	RegisterNewUser(user add.User) error
+	RegisterNewUser(ctx context.Context, user add.User) error
 
-	AddNewOrder(login string, orderNumber string) error
+	AddNewOrder(ctx context.Context, orderNumber string) error
 
-	CheckUserLogin(login string) error
+	CheckUserLogin(ctx context.Context, login string) error
 
-	CheckUser(login, password string) (bool, error)
+	CheckUser(ctx context.Context, login, password string) (bool, error)
 
-	CheckUserJWT(login string) error
+	CheckUserJWT(ctx context.Context, login string) (string, error)
 
-	GetUserBalance(login string) (add.Balance, error)
+	GetUserBalance(ctx context.Context) (add.Balance, error)
 
-	GetAllOrders(orders *[]add.Order, login string) error
+	GetAllOrders(ctx context.Context, orders *[]add.Order) error
 
-	GetSpendOrders(orders *[]add.OrderSpend, login string) error
+	GetSpendOrders(ctx context.Context, orders *[]add.OrderSpend) error
 
-	ProcessPayPoints(order add.OrderSpend, login string) error
+	ProcessPayPoints(ctx context.Context, order add.OrderSpend) error
 
 	StartProcessingUserOrder(logger zap.SugaredLogger, result chan add.OrderAcc)
 
-	ProcessAccOrder(order add.Order) error
+	ProcessAccOrder(ctx context.Context, order add.Order) error
 }
