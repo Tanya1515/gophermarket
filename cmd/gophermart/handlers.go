@@ -226,7 +226,7 @@ func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 		balance, err := GM.storage.GetUserBalance(ctx)
 		if err != nil {
 			http.Error(rw, fmt.Sprintf("Error while getting user %s balance: %s", ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
-			GM.logger.Errorf("Error while unmarshalling request body for processing new order: ", err.Error())
+			GM.logger.Errorf("Error while getting user %s balance: %s", ctx.Value(add.LogginKey),  err.Error())
 			return
 		}
 

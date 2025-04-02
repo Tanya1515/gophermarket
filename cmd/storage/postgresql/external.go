@@ -67,13 +67,13 @@ func (db *PostgreSQL) ProcessPayPoints(ctx context.Context, order add.OrderSpend
 		return fmt.Errorf("error while starting transaction: %w", err)
 	}
 
-	_, err = tx.Exec("UPDATE users SET sum=sum-$1 WHERE user_id=$2;", order.Sum, ctx.Value(add.LogginKey))
+	_, err = tx.Exec("UPDATE users SET sum=sum-$1 WHERE id=$2;", order.Sum, ctx.Value(add.LogginKey))
 	if err != nil {
 		tx.Rollback()
 		return
 	}
 
-	_, err = tx.Exec("UPDATE users SET with_drawn=with_drawn+$1 WHERE user_id=$2;", order.Sum, ctx.Value(add.LogginKey))
+	_, err = tx.Exec("UPDATE users SET with_drawn=with_drawn+$1 WHERE id=$2;", order.Sum, ctx.Value(add.LogginKey))
 	if err != nil {
 		tx.Rollback()
 		return
@@ -136,7 +136,7 @@ func (db *PostgreSQL) CheckUser(ctx context.Context, login, password string) (ok
 
 func (db *PostgreSQL) GetUserBalance(ctx context.Context) (balance add.Balance, err error) {
 
-	row := db.dbConn.QueryRow(`SELECT sum, with_drawn FROM Users WHERE user_id = $1`, ctx.Value(add.LogginKey))
+	row := db.dbConn.QueryRow(`SELECT sum, with_drawn FROM Users WHERE id = $1`, ctx.Value(add.LogginKey))
 	err = row.Scan(&balance.Current, &balance.Withdrawn)
 	if err != nil {
 		return
