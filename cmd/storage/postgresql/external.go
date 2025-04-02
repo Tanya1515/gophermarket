@@ -22,8 +22,8 @@ func (db *PostgreSQL) RegisterNewUser(ctx context.Context, user add.User) error 
 
 func (db *PostgreSQL) AddNewOrder(ctx context.Context, orderNumber string) (err error) {
 
-	var user_id string
-	owner_id := ctx.Value(add.LogginKey)
+	var userID string
+	ownerID := ctx.Value(add.LogginKey)
 
 	rows, err := db.dbConn.QueryContext(ctx, "SELECT user_id FROM orders WHERE id=$1", orderNumber)
 	if (err != nil) && !errors.Is(err, sql.ErrNoRows) {
@@ -33,12 +33,12 @@ func (db *PostgreSQL) AddNewOrder(ctx context.Context, orderNumber string) (err 
 
 	if !errors.Is(err, sql.ErrNoRows) {
 		for rows.Next() {
-			err = rows.Scan(&user_id)
+			err = rows.Scan(&userID)
 			if err != nil {
 				return
 			}
 
-			if user_id == owner_id {
+			if userID == ownerID {
 				return fmt.Errorf("the order with number %s is in the system", orderNumber)
 			} else {
 				return fmt.Errorf("error: order with number %s already exists and belongs to another user", orderNumber)
