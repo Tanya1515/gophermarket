@@ -9,7 +9,7 @@ import (
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 )
 
-func (ac *AccrualSystem) SendOrder(inputChan chan add.OrderAcc, resultChan chan string) {
+func (ac *AccrualSystem) SendOrder(inputChan chan add.OrderAcc){ //, resultChan chan string) {
 
 	for order := range inputChan {
 		order := order
@@ -38,7 +38,7 @@ func (ac *AccrualSystem) SendOrder(inputChan chan add.OrderAcc, resultChan chan 
 
 			}
 
-			resultChan <- order.Order
+			// resultChan <- order.Order
 		}()
 
 	}
