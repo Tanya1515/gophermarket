@@ -50,9 +50,10 @@ func (db *PostgreSQL) StartProcessingUserOrder(logger zap.SugaredLogger, result 
 
 	var order add.OrderAcc
 	g := new(errgroup.Group)
-
+	
+	// select - ожидаем завершения контекста или берем запрос
 	for {
-		rows, err := db.dbConn.Query("SELECT id, accrual FROM orders WHERE status=$1", "NEW")
+		rows, err := db.dbConn.Query("SELECT id, accrual FROM orders WHERE status IN ($1, $2)", "NEW", "PROCESSING")
 		if err != nil {
 			logger.Errorf("Error while getting new orders: ", err)
 			continue
@@ -68,7 +69,7 @@ func (db *PostgreSQL) StartProcessingUserOrder(logger zap.SugaredLogger, result 
 			g.Go(func() error {
 
 				order.Status = "PROCESSING"
-				_, err = db.dbConn.Exec("UPDATE orders SET status=$1 WHERE id=$2", order.Status, order.Order)
+				_, err = db.dbConn.Exec("UPDATE orders SET status=$1 WHERE id=$2 AND status=$3", order.Status, order.Order, "NEW")
 				if err != nil {
 					return err
 				}

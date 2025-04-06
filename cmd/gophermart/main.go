@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 
 	acc "github.com/Tanya1515/gophermarket/cmd/intAccrual"
 	storage "github.com/Tanya1515/gophermarket/cmd/storage"
@@ -25,7 +29,7 @@ func init() {
 	marketAddressFlag = flag.String("a", "localhost:8081", "gophermarket address")
 	storageURLFlag = flag.String("d", "localhost:5432", "database url")
 	accrualSystemAddressFlag = flag.String("r", "http://localhost:8080", "acccrual system address")
-	accrualLimitFlag = flag.Int("l", 100, "request limits for accrual system")
+	accrualLimitFlag = flag.Int("l", 1000, "request limits for accrual system")
 }
 
 var (
@@ -120,8 +124,33 @@ func main() {
 
 	})
 
-	err = http.ListenAndServe(marketAddress, r)
-	if err != nil {
-		GM.logger.Fatalw(err.Error(), "event", "start server")
+	ctx, cancel := context.WithCancel(context.Background())
+
+	httpServer := &http.Server{
+		Addr: marketAddress,
+		Handler: r,
+	}
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		// process SIGINT and SIGTERM
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+		<-c
+		cancel()
+	}()
+
+	g, gCtx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return httpServer.ListenAndServe()
+	})
+	g.Go(func() error {
+		<-gCtx.Done()
+		return httpServer.Shutdown(context.Background())
+	})
+
+	if err := g.Wait(); err != nil {
+		GM.logger.Fatalw(err.Error(), "event", "http-server event")
 	}
 }
