@@ -28,7 +28,7 @@ type StorageInterface interface {
 
 	ProcessPayPoints(ctx context.Context, order add.OrderSpend) error
 
-	StartProcessingUserOrder(logger zap.SugaredLogger, result chan add.OrderAcc)
+	StartProcessingUserOrder(ctx context.Context, logger zap.SugaredLogger, result chan add.OrderAcc)
 
 	ProcessAccOrder(ctx context.Context, order add.Order) error
 }

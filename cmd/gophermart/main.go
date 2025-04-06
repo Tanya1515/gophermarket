@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/go-chi/chi/v5"
@@ -91,11 +92,6 @@ func main() {
 	// Storage := &psql.PostgreSQL{Address: "localhost", UserName: "collector", Password: "postgres", DBName: "gophermarket"}
 	GM.storage = Storage
 
-	Accrual.Logger = loggerApp
-	Accrual.Storage = Storage
-	Accrual.AccrualAddress = accrualSystemAddress
-	Accrual.Limit = accrualLimits
-
 	GM.logger.Infoln("Accrual address: ", Accrual.AccrualAddress)
 	err = GM.storage.Init()
 	if err != nil {
@@ -108,8 +104,6 @@ func main() {
 	)
 
 	GM.secretKey = "secretKey"
-
-	go Accrual.AccrualMain()
 
 	r := chi.NewRouter()
 
@@ -126,8 +120,14 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	Accrual.Logger = loggerApp
+	Accrual.Storage = Storage
+	Accrual.AccrualAddress = accrualSystemAddress
+	Accrual.Limit = accrualLimits
+	
+
 	httpServer := &http.Server{
-		Addr: marketAddress,
+		Addr:    marketAddress,
 		Handler: r,
 	}
 
@@ -142,11 +142,15 @@ func main() {
 
 	g, gCtx := errgroup.WithContext(ctx)
 
+	var wg sync.WaitGroup
+	Accrual.WG = &wg
+	go Accrual.AccrualMain(gCtx)
+
 	g.Go(func() error {
 		return httpServer.ListenAndServe()
 	})
 	g.Go(func() error {
-		<-gCtx.Done()
+		wg.Wait()
 		return httpServer.Shutdown(context.Background())
 	})
 

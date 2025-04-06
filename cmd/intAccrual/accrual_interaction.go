@@ -1,6 +1,7 @@
 package intaccrual
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -9,15 +10,13 @@ import (
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 )
 
-func (ac *AccrualSystem) SendOrder(inputChan chan add.OrderAcc, resultChan chan string) {
+func (ac *AccrualSystem) SendOrder(ctx context.Context, inputChan chan add.OrderAcc, resultChan chan string) {
 
-	// select + case
-	for order := range inputChan {
-		order := order
-
-		// wg.Add(1)
+	select {
+	case order := <-inputChan:
+		ac.WG.Add(1)
 		go func() {
-			// defer wg.Done()
+			defer ac.WG.Done()
 			client := resty.New()
 
 			ordersByte, err := json.Marshal(order)
@@ -50,24 +49,23 @@ func (ac *AccrualSystem) SendOrder(inputChan chan add.OrderAcc, resultChan chan 
 
 			resultChan <- order.Order
 		}()
-
+	case <-ctx.Done():
+		return
 	}
 }
 
-func (ac *AccrualSystem) GetOrderFromAccrual(inputChan chan string, resultChan chan add.OrderAcc) {
+func (ac *AccrualSystem) GetOrderFromAccrual(ctx context.Context, inputChan chan string, resultChan chan add.OrderAcc) {
 
 	var order add.OrderAcc
 
-	// select + case
-	for orderID := range inputChan {
-		orderID := orderID
-		// wg.Add(1)
+	select {
+	case orderID := <-inputChan:
+		ac.WG.Add(1)
 		go func() {
-			// defer wg.Done()
+			defer ac.WG.Done()
 			client := resty.New()
 			ac.SemaphoreAccrual.Lock()
 			defer ac.SemaphoreAccrual.Acquire()
-			// ограничить количество попыток отправки заказа в accrual
 			for i := 0; i < 3; i = i + 1 {
 				resp, err := client.R().Get(ac.AccrualAddress + "/api/orders/" + orderID)
 
@@ -89,6 +87,7 @@ func (ac *AccrualSystem) GetOrderFromAccrual(inputChan chan string, resultChan c
 			}
 
 		}()
-
+	case <-ctx.Done():
+		return
 	}
 }

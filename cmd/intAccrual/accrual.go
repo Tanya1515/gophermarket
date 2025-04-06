@@ -2,6 +2,7 @@ package intaccrual
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -16,9 +17,10 @@ type AccrualSystem struct {
 	Limit            int
 	Logger           zap.SugaredLogger
 	SemaphoreAccrual *Semaphore
+	WG       *sync.WaitGroup
 }
 
-func (ac *AccrualSystem) AccrualMain() {
+func (ac *AccrualSystem) AccrualMain(ctx context.Context) {
 	semaphoreAccrual := NewSemaphore(ac.Limit)
 
 	ac.SemaphoreAccrual = semaphoreAccrual
@@ -27,25 +29,23 @@ func (ac *AccrualSystem) AccrualMain() {
 	orderIDChan := make(chan string, ac.Limit)
 	resultOrderChan := make(chan add.OrderAcc, ac.Limit)
 
-	go ac.Storage.StartProcessingUserOrder(ac.Logger, processOrderChan)
+	go ac.Storage.StartProcessingUserOrder(ctx, ac.Logger, processOrderChan)
 
-	go ac.SendOrder(processOrderChan, orderIDChan)
+	go ac.SendOrder(ctx, processOrderChan, orderIDChan)
 
-	go ac.GetOrderFromAccrual(orderIDChan, resultOrderChan)
+	go ac.GetOrderFromAccrual(ctx, orderIDChan, resultOrderChan)
 
-	// select + case (context или resultOrderChan)
-	for order := range resultOrderChan {
-		order := order
+	select {
+	case order := <-resultOrderChan:
 		for i := 0; i < 3; i = i + 1 {
-
 			var orderResult add.Order
 			orderResult.Number = order.Order
 			orderResult.Status = order.Status
 			orderResult.Accrual = order.Accrual
 
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			queryCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
-			err := ac.Storage.ProcessAccOrder(ctx, orderResult)
+			err := ac.Storage.ProcessAccOrder(queryCtx, orderResult)
 			if err == nil {
 				ac.Logger.Infof("Save recent information about order: %s", order.Order)
 				break
@@ -53,7 +53,7 @@ func (ac *AccrualSystem) AccrualMain() {
 			time.Sleep(5 * time.Second)
 			ac.Logger.Errorf("Error while updating order %s to database: %s", order.Order, err)
 		}
-
+	case <-ctx.Done():
+		return
 	}
-
 }
