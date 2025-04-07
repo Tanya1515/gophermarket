@@ -2,6 +2,7 @@ package intaccrual
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -9,15 +10,17 @@ import (
 
 	add "github.com/Tanya1515/gophermarket/cmd/additional"
 	storage "github.com/Tanya1515/gophermarket/cmd/storage"
+	"github.com/go-resty/resty/v2"
 )
 
 type AccrualSystem struct {
-	AccrualAddress   string
-	Storage          storage.StorageInterface
-	Limit            int
-	Logger           zap.SugaredLogger
-	SemaphoreAccrual *Semaphore
-	WG       *sync.WaitGroup
+	AccrualAddress      string
+	Storage             storage.StorageInterface
+	Limit               int
+	Logger              zap.SugaredLogger
+	SemaphoreAccrual    *Semaphore
+	WG                  *sync.WaitGroup
+	GophermarketAddress string
 }
 
 func (ac *AccrualSystem) AccrualMain(ctx context.Context) {
@@ -37,21 +40,32 @@ func (ac *AccrualSystem) AccrualMain(ctx context.Context) {
 
 	select {
 	case order := <-resultOrderChan:
-		for i := 0; i < 3; i = i + 1 {
-			var orderResult add.Order
-			orderResult.Number = order.Order
-			orderResult.Status = order.Status
-			orderResult.Accrual = order.Accrual
+		var orderResult add.Order
+		orderResult.Number = order.Order
+		orderResult.Status = order.Status
+		orderResult.Accrual = order.Accrual
 
-			queryCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			defer cancel()
-			err := ac.Storage.ProcessAccOrder(queryCtx, orderResult)
-			if err == nil {
-				ac.Logger.Infof("Save recent information about order: %s", order.Order)
+		ordersByte, err := json.Marshal(orderResult)
+		if err != nil {
+			ac.Logger.Errorf("Error while marshalling order %s: %s", order.Order, err)
+		}
+
+		client := resty.New()
+
+		for i := 0; i < 3; i = i + 1 {
+			resp, err := client.R().SetHeader("Content-Type", "application/json").
+				SetBody(ordersByte).
+				Post(ac.GophermarketAddress + "/api/accrual/orders")
+
+			if resp.StatusCode() == 200 {
+				ac.Logger.Infof("Order has been sent to gophermarket: %s", order.Order)
 				break
 			}
+
 			time.Sleep(5 * time.Second)
-			ac.Logger.Errorf("Error while updating order %s to database: %s", order.Order, err)
+			if err != nil {
+				ac.Logger.Errorf("Error while sending order %s to gophermarket: %s", order.Order, err)
+			}
 		}
 	case <-ctx.Done():
 		return

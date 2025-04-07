@@ -226,7 +226,7 @@ func (GM *Gophermarket) GetUserBalance() http.HandlerFunc {
 		balance, err := GM.storage.GetUserBalance(ctx)
 		if err != nil {
 			http.Error(rw, fmt.Sprintf("Error while getting user %s balance: %s", ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
-			GM.logger.Errorf("Error while getting user %s balance: %s", ctx.Value(add.LogginKey),  err.Error())
+			GM.logger.Errorf("Error while getting user %s balance: %s", ctx.Value(add.LogginKey), err.Error())
 			return
 		}
 
@@ -253,8 +253,8 @@ func (GM *Gophermarket) GetUserWastes() http.HandlerFunc {
 		defer cancel()
 		err := GM.storage.GetSpendOrders(ctx, &orders)
 		if err != nil {
-			http.Error(rw, fmt.Sprintf("Error while getting order with points to spend info for user %s: %s",  ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
-			GM.logger.Errorf("Error while getting order with points to spend info for user ",  ctx.Value(add.LogginKey), ": ", err.Error())
+			http.Error(rw, fmt.Sprintf("Error while getting order with points to spend info for user %s: %s", ctx.Value(add.LogginKey), err.Error()), http.StatusInternalServerError)
+			GM.logger.Errorf("Error while getting order with points to spend info for user ", ctx.Value(add.LogginKey), ": ", err.Error())
 			return
 		}
 
@@ -322,4 +322,44 @@ func (GM *Gophermarket) PayByPoints() http.HandlerFunc {
 
 	}
 	return http.HandlerFunc(payByPoints)
+}
+
+func (GM *Gophermarket) ProcessOrder() http.HandlerFunc {
+	processReadyOrder := func(rw http.ResponseWriter, r *http.Request) {
+		var buf bytes.Buffer
+		var order add.Order
+
+		_, err := buf.ReadFrom(r.Body)
+		if err != nil {
+			http.Error(rw, fmt.Sprintf("Error while reading order number for processing it: %s", err.Error()), http.StatusBadRequest)
+			GM.logger.Errorf("Error while reading order number for processing it: ", err.Error())
+			return
+		}
+
+		err = json.Unmarshal(buf.Bytes(), &order)
+		if err != nil {
+			http.Error(rw, fmt.Sprintf("Error while unmarshalling request body for processing new order: %s", err.Error()), http.StatusInternalServerError)
+			GM.logger.Errorf("Error while unmarshalling request body for processing new order: ", err.Error())
+			return
+		}
+
+		for i := 0; i < 3; i = i + 1 {
+
+			queryCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			err := GM.storage.ProcessAccOrder(queryCtx, order)
+			if err == nil {
+				rw.WriteHeader(http.StatusOK)
+				GM.logger.Infof("Save recent information about order: %s", order.Number)
+				break
+			}
+			time.Sleep(5 * time.Second)
+			GM.logger.Errorf("Error while updating order %s to database: %s", order.Number, err)
+		}
+
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
+
+	return http.HandlerFunc(processReadyOrder)
+
 }

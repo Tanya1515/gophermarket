@@ -120,6 +120,7 @@ func main() {
 		r.Get("/api/user/balance", GM.MiddlewareCheckUser(GM.GetUserBalance()))
 		r.Get("/api/user/withdrawals", GM.MiddlewareCheckUser(GM.GetUserWastes()))
 		r.Post("/api/user/balance/withdraw", GM.MiddlewareCheckUser(GM.PayByPoints()))
+		r.Post("/api/accrual/orders", GM.ProcessOrder())
 
 	})
 
@@ -143,6 +144,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	Accrual.WG = &wg
+	Accrual.GophermarketAddress = marketAddress
 	go Accrual.AccrualMain(gCtx)
 
 	g.Go(func() error {
