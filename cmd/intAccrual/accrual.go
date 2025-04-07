@@ -55,7 +55,7 @@ func (ac *AccrualSystem) AccrualMain(ctx context.Context) {
 		for i := 0; i < 3; i = i + 1 {
 			resp, err := client.R().SetHeader("Content-Type", "application/json").
 				SetBody(ordersByte).
-				Post(ac.GophermarketAddress + "/api/accrual/orders")
+				Post("http://" + ac.GophermarketAddress + "/api/accrual/orders")
 
 			if resp.StatusCode() == 200 {
 				ac.Logger.Infof("Order has been sent to gophermarket: %s", order.Order)
